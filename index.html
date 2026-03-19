@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ahlaki Pusula Dedektifleri | Moral Compass Detectives</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700;900&display=swap');
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: #020617; 
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
+            color: #f8fafc;
+            overflow: hidden; /* Ekran kaydırmayı tamamen engeller */
+        }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        .ai-chat-bubble {
+            background: linear-gradient(145deg, rgba(30,41,59,0.9), rgba(15,23,42,0.9));
+            border-left: 4px solid #06b6d4;
+        }
+
+        .text-gradient {
+            background: linear-gradient(to right, #22d3ee, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .text-gradient-gold {
+            background: linear-gradient(to right, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.98); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.2)); }
+            50% { filter: drop-shadow(0 0 25px rgba(34, 211, 238, 0.5)); }
+        }
+
+        .animate-pop {
+            animation: popIn 0.4s ease-out forwards;
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        .animate-glow {
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+
+        .option-btn {
+            transition: all 0.2s;
+        }
+        .option-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(30, 41, 59, 0.9);
+            border-color: #22d3ee;
+        }
+
+        .lang-active {
+            color: #22d3ee;
+            font-weight: 800;
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+            transform: scale(1.1);
+            opacity: 1;
+        }
+        .lang-inactive {
+            color: #64748b;
+            font-weight: 400;
+            transform: scale(0.9);
+            opacity: 0.6;
+        }
+        .lang-text {
+            transition: all 0.3s;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col items-center justify-center p-2 md:p-4">
+
+    <!-- Header / Sadece Sağda Dil Seçeneği -->
+    <div class="absolute top-4 right-4 z-50 pointer-events-none">
+        <button onclick="toggleLanguage()" class="pointer-events-auto bg-slate-900/80 hover:bg-slate-800 border border-slate-700/50 px-4 py-2 md:px-5 md:py-2.5 rounded-full transition-all flex items-center gap-2 shadow-lg backdrop-blur-md group">
+            <i class="fa-solid fa-language text-slate-400 group-hover:text-cyan-400 transition-colors"></i>
+            <div class="flex items-center gap-2 select-none text-sm md:text-base">
+                <span id="lang-tr" class="lang-text lang-active">TR</span>
+                <span class="text-slate-600 font-light">|</span>
+                <span id="lang-en" class="lang-text lang-inactive">EN</span>
+            </div>
+        </button>
+    </div>
+
+    <!-- Main App Container (Tamamen Sabit Ekrana Sığdırıldı) -->
+    <div id="app" class="w-full max-w-6xl h-full flex flex-col">
+        <!-- JS renders content here -->
+    </div>
+
+    <script>
+        let currentLang = 'tr'; 
+        let currentScenarioIndex = 0;
+        let score = 0;
+        
+        // --- UI DICTIONARY ---
+        const ui = {
+            title: { tr: "Ahlaki Pusula Dedektifleri", en: "Moral Compass Detectives" },
+            subtitle: { tr: "Kusurlu Yapay Zekaya Karşı", en: "Against the Flawed AI" },
+            welcome: { 
+                tr: "Sisteme hoş geldiniz Etik Komitesi.<br>Okulumuzun yeni Yapay Zeka Danışmanı devreye alındı ancak gelişim psikolojisi veritabanında kritik bozulmalar tespit edildi. Teorileri ve evreleri birbirine karıştırıyor.<br><br><span class='text-cyan-300 font-semibold'>Göreviniz:</span> YZ'nin analizlerindeki <strong>kasıtlı kavramsal hataları</strong> bulmak, çeldiricilere düşmeden doğru teşhisi koymak.", 
+                en: "Welcome to the system, Ethics Committee.<br>Our new AI Counselor is online, but critical corruptions have been detected in its developmental psychology database. It is mixing up theories and stages.<br><br><span class='text-cyan-300 font-semibold'>Your Mission:</span> Identify the <strong>intentional conceptual errors</strong> in the AI's analyses and make the correct diagnosis without falling for distractors." 
+            },
+            startBtn: { tr: "SİSTEMİ BAŞLAT", en: "INITIALIZE SYSTEM" },
+            theory: { tr: "Veritabanı", en: "Database" },
+            dilemmaTitle: { tr: "Öğrenci İkilemi", en: "Student Dilemma" },
+            aiTitle: { tr: "YZ Analizi", en: "AI Analysis" },
+            caseLabel: { tr: "Vaka", en: "Case" },
+            videoPlaceholderCorrect: { tr: "DOĞRU TEŞHİS!", en: "CORRECT DIAGNOSIS!" },
+            videoPlaceholderWrong: { tr: "YANLIŞ TEŞHİS!", en: "WRONG DIAGNOSIS!" },
+            nextBtn: { tr: "Sıradaki Vakaya Geç", en: "Next Case" },
+            retryBtn: { tr: "Tekrar Dene", en: "Try Again" },
+            endTitle: { tr: "SİMÜLASYON TAMAMLANDI", en: "SIMULATION COMPLETE" },
+            scoreLabel: { tr: "Skor", en: "Score" },
+            reflectionTitle: { tr: "Sınıf İçi Yansıtma Soruları", en: "In-Class Reflection Questions" },
+            reflection1: { tr: "Yapay zekanın hatalarını bulurken hangi teorik prensipleri kullandık?", en: "Which theoretical principles did we use to spot the AI's errors?" },
+            reflection2: { tr: "YZ neden bu spesifik kavramları birbiriyle karıştırmış olabilir?", en: "Why might the AI have confused these specific concepts?" },
+            reflection3: { tr: "Bilgiyi doğrudan kabul etmek yerine eleştirel düşünmenin önemi nedir?", en: "What is the importance of critical thinking instead of accepting information as is?" },
+            restartBtn: { tr: "Sistemi Yeniden Başlat", en: "Reboot System" },
+            failMsg: { tr: "YZ'nin mantıksal hatasını tam olarak bulamadın. Teoriyi tekrar gözden geçir.", en: "You didn't quite catch the AI's logical flaw. Review the theory."},
+            quote: { 
+                tr: '"Eğitimin temel amacı, sadece önceki nesillerin yaptıklarını tekrarlayan değil, yeni şeyler yapabilen kadın ve erkekler yaratmak olmalıdır." — JEAN PIAGET', 
+                en: '"The principal goal of education should be creating men and women who are capable of doing new things, not simply repeating what other generations have done." — JEAN PIAGET' 
+            },
+            teamTitle: { tr: "Etik Komitesi Geliştirici Ekibi", en: "Ethics Committee Dev Team" },
+            thanks: { tr: "Katılımınız için teşekkürler.", en: "Thank you for participating." }
+        };
+
+        const t = (key) => ui[key][currentLang];
+        const getT = (obj) => obj[currentLang];
+
+        // --- 20 SCENARIOS (Tamamen Karıştırılmış Doğrular ve Akademik Çeldiriciler) ---
+        const scenarios = [
+            // Vaka 1 (Doğru Index: 0 -> A)
+            {
+                title: { tr: "Vaka 1: Kayıp Sorular", en: "Case 1: The Missing Exam" },
+                theory: { tr: "Kohlberg - Ahlak Gelişimi", en: "Kohlberg - Moral Development" },
+                dilemma: { 
+                    tr: "Ahmet, en yakın arkadaşının bursunu kaybetmemesi için öğretmenler odasından sınav sorularının fotoğrafını çekti. 'O benim en yakın arkadaşım, yardım etmeliydim' dedi.", 
+                    en: "Ahmet took a photo of the exam questions so his best friend wouldn't lose his scholarship. 'He is my best friend, I had to help him,' he said." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Ahmet, 4. Evre (Kanun ve Düzen) aşamasındadır. Çünkü arkadaşına yardım etmeyi önceliklendirmiş ve kuralları esnetmiştir.'", 
+                    en: "🤖 AI Output: 'Ahmet is in Stage 4 (Law and Order). He prioritized helping his friend and bended the rules.'" 
+                },
+                question: { tr: "YZ hangi kavramsal hatayı yaptı?", en: "What conceptual error did the AI make?" },
+                options: [
+                    { tr: "Kişisel ilişkileri ve sadakati önceliklendirmek 4. Evre (Kanun/Düzen) değil, 3. Evre'dir (İyi Çocuk Eğilimi).", en: "Prioritizing personal relationships and loyalty is Stage 3 (Good Boy), not Stage 4 (Law/Order)." },
+                    { tr: "Ahmet'in kural esnetme davranışı Kohlberg'in Sosyal Sözleşme (5. Evre) yönelimiyle çelişmektedir.", en: "Ahmet's rule-bending behavior contradicts Kohlberg's Social Contract (Stage 5) orientation." },
+                    { tr: "Bireyler arası sadakat, Piaget'nin içselleştirilmiş adalet (immanent justice) kavramının doğrudan bir sonucudur.", en: "Interpersonal loyalty is a direct result of Piaget's concept of immanent justice." },
+                    { tr: "Kohlberg modelinde ahlaki evre, eylemin kendisinden ziyade ahlaki yargılamanın bilişsel şemasına dayandırılmalıdır.", en: "In Kohlberg's model, the moral stage should be based on the cognitive schema of moral judgment rather than the action itself." }
+                ],
+                correctIndex: 0, 
+                correctionText: { 
+                    tr: "Doğru! 3. Evre sosyal onay ve sadakatle ilgilidir. 4. Evre (Kanun ve Düzen) ise arkadaşlık bağlarına bakmaksızın yasalara katı bir şekilde uymayı gerektirir.", 
+                    en: "Correct! Stage 3 focuses on social approval and loyalty. Stage 4 (Law and Order) requires strict adherence to laws regardless of friendship." 
+                }
+            },
+            // Vaka 2 (Doğru Index: 2 -> C)
+            {
+                title: { tr: "Vaka 2: Yıkılan Kule", en: "Case 2: The Fallen Tower" },
+                theory: { tr: "Piaget - Ahlak Gelişimi", en: "Piaget - Moral Development" },
+                dilemma: { 
+                    tr: "6 yaşındaki Zeynep'in kulesini Ali yanlışlıkla yıkar. Öğretmen kaza olduğunu söylese de Zeynep ısrarla ceza verilmesini talep eder.", 
+                    en: "Ali accidentally knocks over 6-year-old Zeynep's block tower. Despite the teacher explaining it was an accident, Zeynep demands punishment." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Zeynep Özerk Ahlak (Autonomous) evresindedir. Niyetten bağımsız olarak sonucun cezalandırılması gerektiğine inanmaktadır.'", 
+                    en: "🤖 AI Output: 'Zeynep is in the Autonomous Morality stage. She believes the outcome must be punished regardless of intent.'" 
+                },
+                question: { tr: "YZ'nin teorik hatası nedir?", en: "What is the theoretical error?" },
+                options: [
+                    { tr: "Zeynep'in tepkisi Erikson'un 'Girişimciliğe karşı Suçluluk' krizinin ahlaki bir dışavurumudur.", en: "Zeynep's reaction is a moral expression of Erikson's 'Initiative vs. Guilt' crisis." },
+                    { tr: "Olayın kazara olması, durumu Kohlberg'in 3. Evre 'Kişilerarası Uyum' kategorisine yerleştirir.", en: "The accidental nature places the situation in Kohlberg's Stage 3 'Interpersonal Concordance' category." },
+                    { tr: "YZ kavramları ters kullanmıştır. Niyete değil sonuca odaklanmak Özerk (Autonomous) değil, Dışa Bağımlı (Heteronomous) ahlaktır.", en: "AI reversed the concepts. Focusing on outcome rather than intent is Heteronomous morality, not Autonomous." },
+                    { tr: "Piaget'nin teorisine göre bu yaş grubundaki çocuklar cezayı araçsal bir koşullanma aracı olarak görür.", en: "According to Piaget's theory, children in this age group view punishment as a tool for instrumental conditioning." }
+                ],
+                correctIndex: 2, 
+                correctionText: { 
+                    tr: "Harika! Sonuçlara odaklanmak ve kuralları katı görmek 10 yaş altı çocuklarda görülen Dışa Bağımlı (Heteronomous) ahlakın en net özelliğidir.", 
+                    en: "Great! Focusing on outcomes and seeing rules as rigid is the clearest trait of Heteronomous morality seen in children under 10." 
+                }
+            },
+            // Vaka 3 (Doğru Index: 3 -> D)
+            {
+                title: { tr: "Vaka 3: Gezi mi, Anne mi?", en: "Case 3: The Trip or Mom?" },
+                theory: { tr: "Gilligan - Bakım Ahlakı", en: "Gilligan - Ethic of Care" },
+                dilemma: { 
+                    tr: "Ayşe, aylardır beklediği okul gezisine gitmek yerine, o gün hastalanan annesine bakmak için kendini feda edip evde kalır.", 
+                    en: "Ayşe sacrifices her highly anticipated school trip to stay home and care for her mother who fell ill." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Ayşe en üst düzey olan 3. Pozisyon'dadır (Entegre Bakım). Çünkü kendi ihtiyaçlarını tamamen yok sayarak başkalarını düşünmüştür.'", 
+                    en: "🤖 AI Output: 'Ayşe is in the highest stage, Position 3 (Integrated Care), because she completely ignored her own needs for others.'" 
+                },
+                question: { tr: "YZ nerede hata yaptı?", en: "Where did the AI fail?" },
+                options: [
+                    { tr: "Ayşe'nin bu davranışı Kohlberg'in 'Araçsal İlişkiler' (2. Evre) aşamasının tipik bir yansımasıdır.", en: "Ayşe's behavior is a typical reflection of Kohlberg's 'Instrumental Relationships' (Stage 2) phase." },
+                    { tr: "Bakım ahlakı teorisine göre fedakarlık, 1. Pozisyon olan 'Geleneksel Öncesi Hayatta Kalma' aşamasıdır.", en: "According to the ethic of care, self-sacrifice is the 1st Position, 'Preconventional Survival'." },
+                    { tr: "Bandura'nın Sosyal Bilişsel Kuramına göre Ayşe prososyal bir modelleme davranışı sergilemektedir.", en: "According to Bandura's Social Cognitive Theory, Ayşe is exhibiting prosocial modeling behavior." },
+                    { tr: "Kendi ihtiyaçlarını tamamen feda etmek 3. değil, 2. Pozisyon'dur (Geleneksel Bakım). 3. Pozisyon denge kurmayı gerektirir.", en: "Completely sacrificing own needs is Position 2 (Conventional Care), not 3. Position 3 requires balance." }
+                ],
+                correctIndex: 3, 
+                correctionText: { 
+                    tr: "Tebrikler! Gilligan'ın 2. Pozisyonu 'kendini feda etmektir'. 3. Pozisyon ise 'kimseye zarar verme' ilkesini kişinin kendine de uygulamasıdır (denge).", 
+                    en: "Congratulations! Gilligan's Position 2 is 'self-sacrifice'. Position 3 is applying the 'do no harm' principle to oneself as well (balance)." 
+                }
+            },
+            // Vaka 4 (Doğru Index: 1 -> B)
+            {
+                title: { tr: "Vaka 4: Şeker İçin Temizlik", en: "Case 4: Cleaning for Candy" },
+                theory: { tr: "Kohlberg - Ahlak Gelişimi", en: "Kohlberg - Moral Development" },
+                dilemma: { 
+                    tr: "Ali, annesi ona büyük bir çikolata sözü verdiği için odasını hızla toplar.", 
+                    en: "Ali quickly cleans his room because his mother promised him a big chocolate." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Ali 1. Evrededir (İtaat ve Ceza), çünkü otoritenin verdiği görevi yerine getirmiştir.'", 
+                    en: "🤖 AI Output: 'Ali is in Stage 1 (Obedience and Punishment) because he fulfilled the task given by the authority.'" 
+                },
+                question: { tr: "Hata nerede?", en: "Where is the error?" },
+                options: [
+                    { tr: "Otoriteye itaat etmek Piaget'nin Özerk dönemindeki karşılıklılık ilkesini doğrular.", en: "Obeying authority confirms the reciprocity principle in Piaget's Autonomous period." },
+                    { tr: "Çıkar ve ödül için davranmak 1. Evre (Ceza) değil, 2. Evre'nin (Araçsal İlişkiler / Bireycilik) özelliğidir.", en: "Acting for benefit and reward is a feature of Stage 2 (Instrumental Exchange / Individualism), not Stage 1 (Punishment)." },
+                    { tr: "Çocuğun kuralları içselleştirmesi, Kohlberg'in 'Kanun ve Düzen' (4. Evre) yönelimini kanıtlamaktadır.", en: "The child's internalization of rules proves Kohlberg's 'Law and Order' (Stage 4) orientation." },
+                    { tr: "Annenin çikolata vaadi, Gilligan'ın 'Entegre Bakım' pozisyonundaki koşulsuz şefkat prensibini yansıtır.", en: "The mother's promise of chocolate reflects the unconditional compassion principle in Gilligan's 'Integrated Care' position." }
+                ],
+                correctIndex: 1, 
+                correctionText: { 
+                    tr: "Evet! 1. Evre sadece cezadan kaçınmakla ilgilidir. Ödül peşinde koşmak ve 'bana ne faydası var?' mantığı 2. Evredir.", 
+                    en: "Yes! Stage 1 is only about avoiding punishment. Seeking rewards and 'what's in it for me?' logic is Stage 2." 
+                }
+            },
+            // Vaka 5 (Doğru Index: 0 -> A)
+            {
+                title: { tr: "Vaka 5: Gizli Adalet", en: "Case 5: Immanent Justice" },
+                theory: { tr: "Piaget - Ahlak Gelişimi", en: "Piaget - Moral Development" },
+                dilemma: { 
+                    tr: "Can gizlice bir kalem çalar. Öğleden sonra düşünce 'Kalem çaldığım için evren beni cezalandırdı' der.", 
+                    en: "Can secretly steals a pen. Later he falls and says 'The universe punished me because I stole the pen.'" 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Can, Özerk (Autonomous) ahlak evresindedir çünkü yaptığı davranışla fiziksel kaza arasında soyut ve felsefi bir bağ kurmuştur.'", 
+                    en: "🤖 AI Output: 'Can is in the Autonomous morality stage because he formed an abstract, philosophical link between his action and the physical accident.'" 
+                },
+                question: { tr: "YZ'nin teorik hatası nedir?", en: "What is the AI's theoretical error?" },
+                options: [
+                    { tr: "Doğanın otomatik olarak cezalandıracağına inanmak (İçkin Adalet) Özerk değil, Dışa Bağımlı (Heteronomous) ahlaka aittir.", en: "Believing nature automatically punishes (Immanent Justice) belongs to Heteronomous morality, not Autonomous." },
+                    { tr: "Soyut bir nedensellik kurması, bilişsel olarak Soyut İşlemler döneminde (Formal Operations) olduğunu kanıtlar.", en: "Establishing abstract causality proves he is cognitively in the Formal Operations period." },
+                    { tr: "Can'ın bu felsefi çıkarımı, Gilligan'ın bakım ahlakındaki kendine zarar verme eğiliminin bir tezahürüdür.", en: "Can's philosophical inference is a manifestation of the self-harm tendency in Gilligan's ethic of care." },
+                    { tr: "Fiziksel kazaların ahlaki sonuçlarla ilişkilendirilmesi Kohlberg'in Sosyal Sözleşme (5. Evre) temelidir.", en: "Correlating physical accidents with moral consequences is the basis of Kohlberg's Social Contract (Stage 5)." }
+                ],
+                correctIndex: 0, 
+                correctionText: { 
+                    tr: "Harika! Doğanın veya evrenin yaramazlıkları otomatik olarak cezalandıracağına inanmak (Gizli/İçkin Adalet) küçük yaşlardaki dışa bağımlı ahlaka özgüdür.", 
+                    en: "Great! Believing nature automatically punishes bad behavior (Immanent Justice) is specific to early heteronomous morality." 
+                }
+            },
+            // Vaka 6 (Doğru Index: 2 -> C)
+            {
+                title: { tr: "Vaka 6: Sadece Kendim", en: "Case 6: Only Myself" },
+                theory: { tr: "Gilligan - Bakım Ahlakı", en: "Gilligan - Ethic of Care" },
+                dilemma: { 
+                    tr: "Küçük Buse, en yakın arkadaşı çok ağlasa bile oyuncağını paylaşmayı kesinlikle reddeder, sadece kendi eğlencesini düşünür.", 
+                    en: "Little Buse flatly refuses to share her toy even if her best friend cries a lot, focusing only on her own fun." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Buse, Gilligan'ın 2. Pozisyonundadır (Geleneksel Bakım). Kendi duygusal sınırlarını korumakta ve öz-saygısını savunmaktadır.'", 
+                    en: "🤖 AI Output: 'Buse is in Gilligan's Position 2 (Conventional Care). She is protecting her emotional boundaries and self-respect.'" 
+                },
+                question: { tr: "YZ nerede yanılıyor?", en: "Where is the AI wrong?" },
+                options: [
+                    { tr: "Buse'nin paylaşmayı reddetmesi ahlaki bir karardan ziyade Piaget'nin nesne sürekliliği eksikliğidir.", en: "Buse's refusal to share is not a moral decision but rather a lack of Piaget's object permanence." },
+                    { tr: "Arkadaşının ağlamasını görmezden gelmesi, onun Kohlberg'in 3. Evre 'İyi Çocuk' aşamasında olduğunu gösterir.", en: "Ignoring her friend's crying shows she is in Kohlberg's Stage 3 'Good Child' phase." },
+                    { tr: "Sadece kendi ihtiyaçlarını ve bencilce isteklerini düşünmek 2. değil, 1. Pozisyon'dur (Hayatta Kalma Yönelimi).", en: "Thinking only of own needs and selfish desires is Position 1 (Survival Orientation), not 2." },
+                    { tr: "Gilligan'ın teorisine göre arkadaşlık ilişkilerindeki bu tür çatışmalar yalnızca erkek çocuklarında gözlemlenir.", en: "According to Gilligan's theory, such conflicts in friendships are only observed in male children." }
+                ],
+                correctIndex: 2, 
+                correctionText: { 
+                    tr: "Süper! Sadece kendini ve kendi varlığını düşünmek Gilligan'ın ilk aşamasıdır (Hayatta Kalma Yönelimi / Bencillik).", 
+                    en: "Super! Thinking only of oneself and one's existence is Gilligan's first stage (Survival Orientation / Selfishness)." 
+                }
+            },
+            // Vaka 7 (Doğru Index: 0 -> A)
+            {
+                title: { tr: "Vaka 7: Haksız Yasa", en: "Case 7: Unjust Law" },
+                theory: { tr: "Kohlberg - Ahlak Gelişimi", en: "Kohlberg - Moral Development" },
+                dilemma: { 
+                    tr: "Bir vatandaş, temel insan haklarını ihlal ettiğini düşündüğü ve mantıksız bulduğu bir yasaya karşı barışçıl protesto düzenler.", 
+                    en: "A citizen organizes a peaceful protest against a law they find illogical and believe violates basic human rights." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Bu vatandaş 4. Evrededir (Kanun ve Düzen) çünkü yasalarla etkileşime girmekte ve toplumsal sisteme odaklanmaktadır.'", 
+                    en: "🤖 AI Output: 'This citizen is in Stage 4 (Law and Order) because they are interacting with laws and focusing on the social system.'" 
+                },
+                question: { tr: "YZ'nin değerlendirmesindeki kritik hata nedir?", en: "What is the critical error in the AI's assessment?" },
+                options: [
+                    { tr: "İnsan hakları için yasayı sorgulamak ve değiştirmeye çalışmak 4. Evre (Körü körüne itaat) değil, 5. veya 6. Evre'ye (Gelenek Sonrası) aittir.", en: "Questioning and trying to change laws for human rights belongs to Stage 5 or 6 (Postconventional), not Stage 4 (Blind obedience)." },
+                    { tr: "Protesto eylemi, Vygotsky'nin 'Yakınsal Gelişim Alanı'ndaki (ZPD) sosyal etkileşim süreciyle açıklanmalıdır.", en: "The protest action should be explained by the social interaction process in Vygotsky's 'Zone of Proximal Development' (ZPD)." },
+                    { tr: "Yasaları ihlal etme potansiyeli, eylemciyi otomatik olarak Kohlberg'in 1. Evre (İtaat ve Ceza) düzeyine çeker.", en: "The potential to violate laws automatically pulls the activist down to Kohlberg's Stage 1 (Obedience and Punishment) level." },
+                    { tr: "Bireyin kendi ahlaki ilkelerini savunması, Erikson'un 'Kimlik Karmaşası' dönemindeki kimlik arayışıdır.", en: "Defending one's own moral principles is the search for identity during Erikson's 'Identity Confusion' period." }
+                ],
+                correctIndex: 0, 
+                correctionText: { 
+                    tr: "Doğru! 4. evre yasaları sorgulamaz, ne olursa olsun itaat eder. İnsan hakları veya sosyal sözleşme (mantık) için yasayı eleştirmek Gelenek Sonrası (Postconventional) düzeydir.", 
+                    en: "Correct! Stage 4 obeys laws without questioning. Criticizing laws for human rights or social contract is Postconventional reasoning." 
+                }
+            },
+            // Vaka 8 (Doğru Index: 3 -> D)
+            {
+                title: { tr: "Vaka 8: Değişen Kurallar", en: "Case 8: Changing Rules" },
+                theory: { tr: "Piaget - Ahlak Gelişimi", en: "Piaget - Moral Development" },
+                dilemma: { 
+                    tr: "12 yaşındaki çocuklar oynarken, kuralların sıkıcı olduğuna karar verip aralarında anlaşarak yeni ve daha adil kurallar icat ederler.", 
+                    en: "12-year-old children playing decide the rules are boring and invent new, fairer rules by mutual agreement." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Bu çocuklar Dışa Bağımlı (Heteronomous) ahlak evresindedir çünkü kuralların mutlak doğasını bozarak kaos yaratmışlardır.'", 
+                    en: "🤖 AI Output: 'These children are in the Heteronomous morality stage because they created chaos by breaking the absolute nature of rules.'" 
+                },
+                question: { tr: "YZ kavramı nerede yanlış kullandı?", en: "Where did the AI misuse the concept?" },
+                options: [
+                    { tr: "Akranlar arası kuralların yeniden yapılandırılması, Kohlberg'in 2. Evre 'Araçsal İlişkiler' aşamasının kanıtıdır.", en: "Restructuring rules among peers is evidence of Kohlberg's Stage 2 'Instrumental Relationships' phase." },
+                    { tr: "12 yaşındaki çocukların kuralları tartışması, henüz Dışa Bağımlı Ahlak evresinden çıkamadıklarını gösterir.", en: "12-year-old children debating rules shows they haven't yet exited the Heteronomous Morality stage." },
+                    { tr: "Ahlaki gelişimde akran etkileşimi Piaget tarafından reddedilir; odak yalnızca ebeveyn-çocuk ilişkisidir.", en: "Peer interaction in moral development is rejected by Piaget; the focus is solely on the parent-child relationship." },
+                    { tr: "Kuralların esnek olduğunu bilip karşılıklı anlaşarak değiştirebilmek Dışa Bağımlı değil, Özerk (Autonomous) ahlakın en büyük göstergesidir.", en: "Knowing rules are flexible and changing them by mutual agreement is the biggest indicator of Autonomous, not Heteronomous morality." }
+                ],
+                correctIndex: 3, 
+                correctionText: { 
+                    tr: "Kesinlikle! Piaget'ye göre Özerk (Autonomous) ahlakta çocuklar kuralların gökten inme olmadığını, akranlarla anlaşılarak değiştirilebileceğini (sosyal sözleşme) anlarlar.", 
+                    en: "Absolutely! In Autonomous morality, children understand rules aren't divine laws and can be changed by peer agreement (social contract)." 
+                }
+            },
+            // Vaka 9 (Doğru Index: 1 -> B)
+            {
+                title: { tr: "Vaka 9: Hapishane Korkusu", en: "Case 9: Fear of Jail" },
+                theory: { tr: "Kohlberg - Ahlak Gelişimi", en: "Kohlberg - Moral Development" },
+                dilemma: { 
+                    tr: "Öğrenci Heinz ikilemini okuduktan sonra: 'Heinz ilacı çalmamalı, yoksa yakalanır ve hapishanede çürür' der.", 
+                    en: "After reading the Heinz dilemma, a student says: 'Heinz shouldn't steal, otherwise he'll be caught and rot in jail.'" 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Öğrenci yasaları ve adalet sistemini savunduğu için kesinlikle 4. Evrededir (Kanun ve Düzen).'", 
+                    en: "🤖 AI Output: 'Since the student defends the laws and justice system, they are definitely in Stage 4 (Law and Order).'" 
+                },
+                question: { tr: "YZ'nin bu yanıtı analiz ederken düştüğü tuzak nedir?", en: "What trap did the AI fall into?" },
+                options: [
+                    { tr: "Öğrencinin adalet sistemine olan bu kesin inancı, onun Gilligan'ın 3. Pozisyonuna (Entegre Bakım) ulaştığını gösterir.", en: "The student's firm belief in the justice system shows they have reached Gilligan's 3rd Position (Integrated Care)." },
+                    { tr: "Hapishaneden korkarak çalmamak yasalara saygıdan (4. Evre) değil, tamamen cezadan kaçınmaktan (1. Evre) kaynaklanır.", en: "Not stealing out of fear of jail stems not from respect for law (Stage 4), but entirely from avoiding punishment (Stage 1)." },
+                    { tr: "Hapishane argümanı, bireyin evrensel ahlak ilkelerini (6. Evre) yasaların üstünde tuttuğunun göstergesidir.", en: "The jail argument indicates that the individual holds universal moral principles (Stage 6) above laws." },
+                    { tr: "YZ'nin analizi doğrudur, çünkü yasaların korunması gerekliliği her durumda Geleneksel düzeye (4. Evre) aittir.", en: "AI's analysis is correct, because the necessity of protecting laws belongs to the Conventional level (Stage 4) in all cases." }
+                ],
+                correctIndex: 1, 
+                correctionText: { 
+                    tr: "Harika! 4. Evredeki kişi yasanın toplumu ayakta tuttuğunu düşünür. Ama bu öğrencinin tek derdi kendi başına gelecek olan hapis cezasıdır (1. Evre).", 
+                    en: "Great! A Stage 4 person thinks laws uphold society. This student's only concern is the personal punishment of jail (Stage 1)." 
+                }
+            },
+            // Vaka 10 (Doğru Index: 1 -> B)
+            {
+                title: { tr: "Vaka 10: Uyanış", en: "Case 10: Awakening" },
+                theory: { tr: "Gilligan - Bakım Ahlakı", en: "Gilligan - Ethic of Care" },
+                dilemma: { 
+                    tr: "Sadece kendini düşünen bir genç, aniden ne kadar bencil olduğunu fark eder ve artık her kararında *sadece* başkalarının mutluluğunu önceliklendirir.", 
+                    en: "A teen who only thought of herself suddenly realizes how selfish she was and starts prioritizing *only* others' happiness in every decision." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Bu genç kız bencillikten tamamen kurtulduğu için Gilligan'ın en üst evresi olan 3. Pozisyona (Entegre Bakım) ulaşmıştır.'", 
+                    en: "🤖 AI Output: 'Because this girl completely escaped selfishness, she reached Gilligan's highest stage, Position 3 (Integrated Care).'" 
+                },
+                question: { tr: "YZ'nin hatasını bulunuz:", en: "Find the AI's error:" },
+                options: [
+                    { tr: "Gilligan'ın teorisine göre ahlaki gelişim ergenlik döneminde tamamlandığı için bu ani değişim bilişseldir.", en: "According to Gilligan's theory, since moral development is completed in adolescence, this sudden change is cognitive." },
+                    { tr: "Kendini tamamen yok sayıp sadece başkalarını düşünmek 3. Pozisyon değil, 2. Pozisyon'dur (Geleneksel Bakım / Kendini Feda Etme).", en: "Completely ignoring oneself to only consider others is Position 2 (Conventional Care / Self-sacrifice), not Position 3." },
+                    { tr: "Bencillikten fedakarlığa geçiş, bireyi otomatik olarak Kohlberg'in Sosyal Sözleşme (5. Evre) düzeyine taşır.", en: "The transition from selfishness to sacrifice automatically moves the individual to Kohlberg's Social Contract (Stage 5) level." },
+                    { tr: "Başkalarının mutluluğunu önceliklendirmek, Piaget'nin Dışa Bağımlı (Heteronomous) ahlak evresinin bir sonucudur.", en: "Prioritizing others' happiness is a result of Piaget's Heteronomous morality stage." }
+                ],
+                correctIndex: 1, 
+                correctionText: { 
+                    tr: "Süper! Bencillikten (1) kendini feda etmeye (2) geçiş yapmıştır. Henüz ikisini sağlıklı bir şekilde dengeleyebildiği (3. Pozisyon) aşamada değildir.", 
+                    en: "Super! She moved from selfishness (1) to self-sacrifice (2). She is not yet at the healthy balancing stage (Position 3)." 
+                }
+            },
+            // Vaka 11 (Doğru Index: 2 -> C)
+            {
+                title: { tr: "Vaka 11: Karşılıklı Çıkar", en: "Case 11: Mutual Benefit" },
+                theory: { tr: "Kohlberg - Ahlak Gelişimi", en: "Kohlberg - Moral Development" },
+                dilemma: { 
+                    tr: "Mert, 'Ödevime bakmana izin veririm ama yarın öğle yemeğimi sen ısmarlarsın' diyerek arkadaşına anlaşma sunar.", 
+                    en: "Mert offers his friend a deal: 'I'll let you copy my homework, but you have to buy my lunch tomorrow.'" 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Mert 3. Evrededir (Kişilerarası Uyum - İyi Çocuk). Arkadaşına yardım ederek sosyal uyum sağlamaktadır.'", 
+                    en: "🤖 AI Output: 'Mert is in Stage 3 (Interpersonal Concordance). He is ensuring social harmony by helping his friend.'" 
+                },
+                question: { tr: "YZ'nin hatasını bulunuz:", en: "Find the AI's error:" },
+                options: [
+                    { tr: "Anlaşma sağlamak, Gilligan'ın 'Geleneksel Bakım' aşamasındaki kişilerarası sorumluluk prensibini doğrular.", en: "Making a deal confirms the interpersonal responsibility principle in Gilligan's 'Conventional Care' stage." },
+                    { tr: "Ödevin karşılığında bir şey talep edilmesi, evrensel ahlak ihlali olduğu için bireyi 1. Evre'ye geriletir.", en: "Demanding something in return for homework regresses the individual to Stage 1 as it is a universal ethics violation." },
+                    { tr: "Davranış 'Sen benim sırtımı kaşı, ben seninkini' temellidir. Bu karşılıklı çıkar 3. Evre değil, 2. Evre'dir (Araçsal İlişkiler).", en: "The behavior is 'You scratch my back, I scratch yours' based. This mutual benefit is Stage 2 (Instrumental Exchange), not Stage 3." },
+                    { tr: "Mert kuralları kendi lehine kullandığı için doğrudan Kohlberg'in 5. Evre (Sosyal Sözleşme) aşamasındadır.", en: "Because Mert uses rules to his advantage, he is directly in Kohlberg's Stage 5 (Social Contract)." }
+                ],
+                correctIndex: 2, 
+                correctionText: { 
+                    tr: "Çok İyi! 2. Evrede (Araçsal İlişkiler / Bireycilik) ahlak pazarlık gibidir. 3. Evrede ise karşılık beklemeden saf bir 'iyi görünme' arzusu vardır.", 
+                    en: "Very Good! In Stage 2 (Instrumental), morality is like a transaction. Stage 3 involves a desire to 'look good' without expecting return." 
+                }
+            },
+            // Vaka 12 (Doğru Index: 0 -> A)
+            {
+                title: { tr: "Vaka 12: Niyetin Önemi", en: "Case 12: Importance of Intent" },
+                theory: { tr: "Piaget - Ahlak Gelişimi", en: "Piaget - Moral Development" },
+                dilemma: { 
+                    tr: "Berna annesine sürpriz yapmak isterken koca bir kavanoz reçeli kırar. Ceyda ise annesine kızıp bilerek bir tatlı kaşığı reçel döker. 9 yaşındaki Ali'ye göre Ceyda daha suçludur.", 
+                    en: "Berna drops a large jar of jam while making a surprise. Ceyda gets mad and purposely spills a spoon of jam. 9-year-old Ali says Ceyda is naughtier." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Ali Dışa Bağımlı (Heteronomous) ahlak evresindedir, çünkü kavanozun büyüklüğünü göz ardı etmiştir.'", 
+                    en: "🤖 AI Output: 'Ali is in the Heteronomous morality stage because he ignored the size of the jar.'" 
+                },
+                question: { tr: "YZ değerlendirmede nerede çuvalladı?", en: "Where did the AI mess up in the evaluation?" },
+                options: [
+                    { tr: "Maddi hasara değil niyete (bilerek yapmaya) odaklanmak Dışa Bağımlı değil, Özerk (Autonomous) ahlakın göstergesidir.", en: "Focusing on intent (purposely) rather than material damage is an indicator of Autonomous, not Heteronomous morality." },
+                    { tr: "Ali'nin bu değerlendirmesi, Kohlberg'in Sosyal Sözleşme evresindeki (5. Evre) adalet kavramıyla eşleşmektedir.", en: "Ali's evaluation matches the justice concept in Kohlberg's Social Contract stage (Stage 5)." },
+                    { tr: "Piaget'nin teorisine göre 9 yaşındaki bir çocuk hala ahlak öncesi (premoral) dönemdedir ve niyetleri algılayamaz.", en: "According to Piaget's theory, a 9-year-old child is still in the premoral period and cannot perceive intentions." },
+                    { tr: "YZ haklıdır; Ali fiziksel hasarın büyüklüğünü (kavanoz) göremediği için bilişsel gelişiminde gecikme yaşamaktadır.", en: "AI is right; because Ali cannot see the magnitude of physical damage (jar), he is experiencing a delay in cognitive development." }
+                ],
+                correctIndex: 0, 
+                correctionText: { 
+                    tr: "Mükemmel! Küçük çocuklar maddi hasara (Heteronomous) bakarken, büyüdükçe eylemin arkasındaki niyete bakmaya başlarlar (Autonomous). Ali niyete odaklanmış.", 
+                    en: "Perfect! Young children look at material damage (Heteronomous), while older ones look at intent (Autonomous). Ali focused on intent." 
+                }
+            },
+            // Vaka 13 (Doğru Index: 3 -> D)
+            {
+                title: { tr: "Vaka 13: Teorinin Kapsamı", en: "Case 13: Scope of Theory" },
+                theory: { tr: "Gilligan - Bakım Ahlakı", en: "Gilligan - Ethic of Care" },
+                dilemma: { 
+                    tr: "Ahmet kararlarında kurallara ve 'adalet' ilkesine odaklanırken, Ayşe 'insan ilişkilerine ve şefkate' odaklanmaktadır.", 
+                    en: "Ahmet focuses on rules and 'justice' in decisions, while Ayşe focuses on 'relationships and care'." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Carol Gilligan'a göre Ahmet, şefkat eksikliği yaşadığı için ahlaki gelişimini tamamlayamamış ve başarısız olmuştur.'", 
+                    en: "🤖 AI Output: 'According to Carol Gilligan, Ahmet failed his moral development because he lacks compassion.'" 
+                },
+                question: { tr: "YZ'nin Gilligan hakkındaki en büyük yanılgısı nedir?", en: "What is the AI's biggest misconception about Gilligan?" },
+                options: [
+                    { tr: "Adalet ve kurallar kavramı yalnızca Piaget'nin ahlak teorisinde yer alır, Kohlberg ve Gilligan bunu tamamen reddeder.", en: "The concept of justice and rules only exists in Piaget's moral theory, Kohlberg and Gilligan completely reject it." },
+                    { tr: "Gilligan'ın çalışmaları, kadınların ahlaki muhakemesinin evrensel düzeyde erkeklerden daha üstün olduğunu kanıtlamıştır.", en: "Gilligan's studies proved that women's moral reasoning is universally superior to men's." },
+                    { tr: "Şefkat ve bakım olgusu, Kohlberg'in Evrensel Ahlak İlkeleri (6. Evre) evresinin tek ve temel belirleyicisidir.", en: "The phenomenon of compassion and care is the sole and fundamental determinant of Kohlberg's Universal Ethical Principles (Stage 6) phase." },
+                    { tr: "Gilligan, erkeklerin (adalet) ahlakının yanlış veya başarısız olduğunu söylemez; sadece kadınların (bakım/şefkat) farklı bir ahlaki sese sahip olduğunu savunur.", en: "Gilligan doesn't say male (justice) morality is wrong or failed; she argues females (care) simply have a different moral voice." }
+                ],
+                correctIndex: 3, 
+                correctionText: { 
+                    tr: "Doğru! Gilligan Kohlberg'i erkek-odaklı (adalet) olduğu için eleştirmiş, kadınların şefkat odaklı ahlakının 'daha düşük' veya 'yanlış' değil sadece 'farklı bir ses' olduğunu savunmuştur.", 
+                    en: "Correct! Gilligan criticized Kohlberg for being male-centric (justice) and argued female care-based morality is 'different', not 'lesser' or 'wrong'." 
+                }
+            },
+            // Vaka 14 (Doğru Index: 2 -> C)
+            {
+                title: { tr: "Vaka 14: Korkudan İtaat", en: "Case 14: Obedience out of Fear" },
+                theory: { tr: "Kohlberg - Ahlak Gelişimi", en: "Kohlberg - Moral Development" },
+                dilemma: { 
+                    tr: "Selin, kardeşine vurmak ister ama 'Annem görürse bana çok fena bağırır' diyerek vazgeçer.", 
+                    en: "Selin wants to hit her brother but stops, saying 'If mom sees, she will yell at me badly.'" 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Selin 3. Evrededir (İyi Çocuk Eğilimi). Annesini hayal kırıklığına uğratmamak ve onun gözünde uslu bir kız olmak istemiştir.'", 
+                    en: "🤖 AI Output: 'Selin is in Stage 3 (Good Girl). She didn't want to disappoint her mom and wanted to be a good girl in her eyes.'" 
+                },
+                question: { tr: "Bu analizdeki teorik hata nedir?", en: "What is the theoretical flaw in this analysis?" },
+                options: [
+                    { tr: "Kardeşine vurma dürtüsünü bastırmak, doğrudan Evrensel Ahlak (6. Evre) düzeyindeki 'hayatın kutsallığı' ilkesidir.", en: "Suppressing the urge to hit her sibling is directly the 'sanctity of life' principle at the Universal Ethics (Stage 6) level." },
+                    { tr: "Selin, annesinin ev içindeki yasal otoritesini tanıdığı için eylemi kesinlikle Kanun ve Düzen (4. Evre) aşamasındadır.", en: "Since Selin recognizes her mother's legal authority in the house, her action is definitively in the Law and Order (Stage 4) phase." },
+                    { tr: "Selin'in tek motivasyonu annesinin bağırmasından (cezadan) kaçınmaktır. Bu yüzden 3. Evre değil, 1. Evredir (Ceza ve İtaat).", en: "Selin's only motivation is avoiding her mom's yelling (punishment). So it's not Stage 3, but Stage 1 (Punishment and Obedience)." },
+                    { tr: "Kohlberg'in orijinal araştırmaları yalnızca erkek çocuklarını kapsadığı için, teori Selin'in davranışlarına uygulanamaz.", en: "Because Kohlberg's original research only included male children, the theory cannot be applied to Selin's behaviors." }
+                ],
+                correctIndex: 2, 
+                correctionText: { 
+                    tr: "Çok iyi! Eylemin nedeni 'iyi anılmak veya sevgi kazanmak' (3. Evre) değil, tamamen 'cezadan/korkudan kaçınmak'tır (1. Evre).", 
+                    en: "Very good! The motive isn't 'to be thought of as good or loved' (Stage 3), but purely 'avoiding punishment/fear' (Stage 1)." 
+                }
+            },
+            // Vaka 15 (Doğru Index: 0 -> A)
+            {
+                title: { tr: "Vaka 15: Değişmez Kurallar", en: "Case 15: Immutable Rules" },
+                theory: { tr: "Piaget - Ahlak Gelişimi", en: "Piaget - Moral Development" },
+                dilemma: { 
+                    tr: "5 yaşındaki Arda, oyun kurallarını Allah'ın veya okul müdürünün koyduğunu ve kimsenin bunları asla değiştiremeyeceğini iddia eder.", 
+                    en: "5-year-old Arda claims game rules are set by God or the principal and nobody can ever change them." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Arda kuralların kaynağı konusunda mantık yürütebildiği için Özerk (Autonomous) Ahlak aşamasına geçiş yapmıştır.'", 
+                    en: "🤖 AI Output: 'Arda has transitioned into Autonomous Morality because he can reason about the source of the rules.'" 
+                },
+                question: { tr: "YZ neden yanılıyor?", en: "Why is the AI wrong?" },
+                options: [
+                    { tr: "Kuralların kutsal, mutlak ve dış bir otorite tarafından konulduğuna inanmak Özerk değil, Dışa Bağımlı (Heteronomous) ahlaktır.", en: "Believing rules are sacred, absolute, and set by external authority is Heteronomous, not Autonomous morality." },
+                    { tr: "Kuralların mutlak olduğuna dair mantık yürütmek, Vygotsky'nin 'içsel konuşma' (inner speech) evresinin dışavurumudur.", en: "Reasoning that rules are absolute is an expression of Vygotsky's 'inner speech' stage." },
+                    { tr: "Okul müdürü ahlak kuramının bir otorite figürü olamaz, Piaget ahlak gelişimini yalnızca ebeveynler üzerinden tanımlar.", en: "The principal cannot be an authority figure in moral theory, Piaget defines moral development solely through parents." },
+                    { tr: "Arda kuralların sistemin devamı için gerekli olduğuna inandığı için Kohlberg'in Sosyal Sözleşme (5. Evre) aşamasındadır.", en: "Because Arda believes rules are necessary for the continuation of the system, he is in Kohlberg's Social Contract (Stage 5) stage." }
+                ],
+                correctIndex: 0, 
+                correctionText: { 
+                    tr: "Tebrikler! Kuralları otoritenin koyduğu, değiştirilemez ve kutsal tabular olarak görmek Dışa Bağımlı (Heteronomous) ahlakın en temel göstergesidir.", 
+                    en: "Congratulations! Viewing rules as immutable, sacred taboos set by authority is the core trait of Heteronomous morality." 
+                }
+            },
+            // Vaka 16 (Doğru Index: 1 -> B)
+            {
+                title: { tr: "Vaka 16: Katı Hakim", en: "Case 16: Strict Judge" },
+                theory: { tr: "Kohlberg - Ahlak Gelişimi", en: "Kohlberg - Moral Development" },
+                dilemma: { 
+                    tr: "Bir hakim, yasanın çok sert olduğunu ve sanığın haksızlığa uğradığını düşünmesine rağmen, 'Yasa yasadır, esnetilemez' diyerek en ağır cezayı verir.", 
+                    en: "A judge believes the law is too harsh and the defendant is treated unfairly, but says 'Law is law, it cannot be bended' and gives the max penalty." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Hakim toplumsal değerleri ve adaleti dikkate aldığı için 5. Evrededir (Sosyal Sözleşme).'", 
+                    en: "🤖 AI Output: 'Because the judge considered societal values and justice, they are in Stage 5 (Social Contract).'" 
+                },
+                question: { tr: "YZ evreleri nasıl karıştırdı?", en: "How did the AI mix up the stages?" },
+                options: [
+                    { tr: "Hakimin adaleti körü körüne uygulaması, onun Gilligan'ın Bakım Ahlakındaki 'Kendine Zarar Verme' eğilimine kaydığını gösterir.", en: "The judge applying justice blindly shows they have shifted to the 'Self-Harm' tendency in Gilligan's Ethic of Care." },
+                    { tr: "Yasanın esnekliğine inanmayıp, haksız olsa bile katı bir şekilde kuralları uygulamak 5. Evre değil, 4. Evre'dir (Kanun ve Düzen).", en: "Applying rules strictly even if unfair, without believing in their flexibility, is Stage 4 (Law and Order), not Stage 5." },
+                    { tr: "Hakim evrensel adalet ilkelerini toplumun yasalarından üstün tuttuğu için kesinlikle 6. Evrededir.", en: "Because the judge holds universal justice principles above society's laws, they are definitely in Stage 6." },
+                    { tr: "Esnetilemeyen kurallar ve en ağır ceza vurgusu, Piaget'nin 'içkin adalet' (immanent justice) kavramının yansımasıdır.", en: "Unbendable rules and the emphasis on max penalty reflect Piaget's 'immanent justice' concept." }
+                ],
+                correctIndex: 1, 
+                correctionText: { 
+                    tr: "Çok Doğru! 5. Evredeki biri yasanın haksız olduğunu düşünürse inisiyatif alıp yasayı esnetmeye/değiştirmeye çalışır (Sosyal Sözleşme). Sadece yasayı körü körüne uygulamak 4. Evredir.", 
+                    en: "Very True! Someone in Stage 5 would try to bend/change an unfair law. Applying it blindly is Stage 4." 
+                }
+            },
+            // Vaka 17 (Doğru Index: 3 -> D)
+            {
+                title: { tr: "Vaka 17: Denge Arayışı", en: "Case 17: Seeking Balance" },
+                theory: { tr: "Gilligan - Bakım Ahlakı", en: "Gilligan - Ethic of Care" },
+                dilemma: { 
+                    tr: "Çalışan bir anne, çocuklarına zaman ayırdığı gibi, kendi akıl sağlığını korumak için de haftada bir gün sadece kendine vakit ayırmaya karar verir.", 
+                    en: "A working mother decides to dedicate one day a week solely to herself to protect her mental health, just as she makes time for her children." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Bu anne 2. Pozisyondadır (Geleneksel Bakım). Bencilce davranmayı bırakıp fedakarlık yapmaya başlamıştır.'", 
+                    en: "🤖 AI Output: 'This mother is in Position 2 (Conventional Care). She stopped acting selfishly and started making sacrifices.'" 
+                },
+                question: { tr: "YZ'nin yaptığı kavramsal hata nedir?", en: "What is the conceptual error made by the AI?" },
+                options: [
+                    { tr: "Kendine vakit ayırmayı tercih etmesi, annenin Gilligan'ın 1. Pozisyonuna (Bencillik/Hayatta Kalma) geri döndüğünü kanıtlar.", en: "Choosing to take time for herself proves the mother has reverted to Gilligan's 1st Position (Selfishness/Survival)." },
+                    { tr: "Ebeveyn davranışları ve fedakarlık, yalnızca Kohlberg'in Evrensel Etik (6. Evre) perspektifi ile pedagojik olarak ölçülebilir.", en: "Parental behaviors and sacrifice can only be pedagogically measured with Kohlberg's Universal Ethics (Stage 6) perspective." },
+                    { tr: "Gilligan'ın revize edilmiş teorisinde 2. Pozisyon en üst ve nihai aşamadır; entegrasyon (3. Pozisyon) literatürde reddedilmiştir.", en: "In Gilligan's revised theory, Position 2 is the highest and final stage; integration (Position 3) has been rejected in literature." },
+                    { tr: "Hem kendi ihtiyaçlarını hem de başkalarınınkini dengelemek 2. Pozisyon değil, en üst düzey olan 3. Pozisyon'dur (Entegre Bakım).", en: "Balancing own needs with others is Position 3 (Integrated Care), not Position 2." }
+                ],
+                correctIndex: 3, 
+                correctionText: { 
+                    tr: "Tebrikler! Gilligan'a göre en olgun ahlak anlayışı (3. Pozisyon) bireyin başkalarına bakarken kendini de kurban etmemesi, şiddetsizlik ilkesini kendine de uygulamasıdır.", 
+                    en: "Congratulations! Gilligan's highest stage (Position 3) is when the individual cares for others without victimizing themselves." 
+                }
+            },
+            // Vaka 18 (Doğru Index: 0 -> A)
+            {
+                title: { tr: "Vaka 18: Tehlikeli Savunma", en: "Case 18: Dangerous Defense" },
+                theory: { tr: "Kohlberg - Ahlak Gelişimi", en: "Kohlberg - Moral Development" },
+                dilemma: { 
+                    tr: "Bir aktivist, hiç tanımadığı insanların yaşama hakkını korumak için kendi özgürlüğünü tehlikeye atarak yasa dışı eylem yapar.", 
+                    en: "An activist breaks the law and risks their own freedom to protect the right to life of complete strangers." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Bu kişi 3. Evrededir (İyi Çocuk Eğilimi). Diğer insanların gözünde 'kahraman' olarak anılmak istemektedir.'", 
+                    en: "🤖 AI Output: 'This person is in Stage 3 (Good Boy). They want to be remembered as a 'hero' in other people's eyes.'" 
+                },
+                question: { tr: "YZ'nin yaptığı hata nedir?", en: "What mistake did the AI make?" },
+                options: [
+                    { tr: "Evrensel yaşama hakkı için yasaları ve kendi hayatını riske atmak 3. Evre (gösteriş) değil, 6. Evre'dir (Evrensel Etik İlkeler).", en: "Risking laws and own life for universal right to life is Stage 6 (Universal Ethical Principles), not Stage 3 (showing off)." },
+                    { tr: "Bireyin tanımadığı kişilere yardım etmesi, Kohlberg'in değil, Freud'un süperego ve psikoanalitik savunma mekanizmalarının konusudur.", en: "Helping people one doesn't know is the subject of Freud's superego and psychoanalytic defense mechanisms, not Kohlberg's." },
+                    { tr: "Mevcut yasaları ihlal etmek, koşullar ne olursa olsun bireyi ahlaki olarak 1. Evre'ye (Ceza ve İtaat) hapseder.", en: "Violating existing laws, regardless of conditions, traps the individual morally in Stage 1 (Obedience and Punishment)." },
+                    { tr: "Aktivist eylemlerini doğrudan yasalar ve insan hakları metinleri üzerinden temellendirdiği için 4. Evre'dedir.", en: "Because the activist bases their actions directly on laws and human rights texts, they are in Stage 4." }
+                ],
+                correctIndex: 0, 
+                correctionText: { 
+                    tr: "Harika! 6. Evredeki kişiler adalet, eşitlik ve yaşam hakkı gibi evrensel ilkeler için yasalara, otoriteye veya toplum baskısına karşı gelebilirler.", 
+                    en: "Great! People in Stage 6 act on universal principles like justice and life, even against laws, authority or social pressure." 
+                }
+            },
+            // Vaka 19 (Doğru Index: 2 -> C)
+            {
+                title: { tr: "Vaka 19: Kırık Cam", en: "Case 19: Broken Window" },
+                theory: { tr: "Piaget - Ahlak Gelişimi", en: "Piaget - Moral Development" },
+                dilemma: { 
+                    tr: "Veli top oynarken kazara camı kırar. Ev sahibi 'Hiç önemli değil' dese de, Veli ne olursa olsun dövülmeyi veya cezalandırılmayı bekler.", 
+                    en: "Veli accidentally breaks a window. Though the owner says 'It's totally fine,' Veli expects to be beaten or punished no matter what." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Veli Özerk Ahlak (Autonomous) aşamasındadır çünkü kendi kendini cezalandırma gibi üst düzey bir vicdan geliştirmiştir.'", 
+                    en: "🤖 AI Output: 'Veli is in the Autonomous Morality stage because he developed a high-level conscience like self-punishment.'" 
+                },
+                question: { tr: "YZ'nin yaptığı büyük hata nedir?", en: "What is the AI's major mistake?" },
+                options: [
+                    { tr: "Veli'nin cezalandırılma beklentisi, Kohlberg'in 2. Evresindeki 'Araçsal İlişkiler' ve çıkarcı pazarlık yaklaşımıdır.", en: "Veli's expectation of punishment is the 'Instrumental Relationships' and self-serving bargaining approach in Kohlberg's Stage 2." },
+                    { tr: "Ev sahibi affettiği halde Veli'nin ceza beklemesi, onun ahlaki gelişim sürecini başarıyla tamamladığını kanıtlar.", en: "Veli expecting punishment even though the owner forgave proves he has successfully completed his moral development process." },
+                    { tr: "Kastı olmasa bile kuralların mutlak bir cezası olması gerektiğine inanmak Özerk değil, Dışa Bağımlı (Heteronomous) ahlaktır.", en: "Expecting absolute punishment even without intent is Heteronomous morality, not Autonomous." },
+                    { tr: "Piaget'nin ahlak kuramı yalnızca çocukların kendi aralarındaki oyun kurallarını inceler, dış otoritelerin tepkisini dışlar.", en: "Piaget's moral theory only examines children's game rules among themselves, it excludes the reaction of external authorities." }
+                ],
+                correctIndex: 2, 
+                correctionText: { 
+                    tr: "Harika! Niyetten bağımsız olarak sonucun otomatik ve sert bir yaptırımı olması gerektiğine inanmak Heteronomous ahlakın vizyonudur.", 
+                    en: "Great! Believing outcomes require automatic and harsh sanctions regardless of intent is the vision of Heteronomous morality." 
+                }
+            },
+            // Vaka 20 (Doğru Index: 1 -> B)
+            {
+                title: { tr: "Vaka 20: Zeka ve Ahlak", en: "Case 20: Intelligence and Morality" },
+                theory: { tr: "Kohlberg - Bilişsel ve Ahlaki Gelişim", en: "Kohlberg - Cognitive & Moral Dev." },
+                dilemma: { 
+                    tr: "Bir öğrenci matematikte ve soyut düşünme becerilerinde (Soyut İşlemler Dönemi) bir dâhidir, ancak hala sadece kendi çıkarları için yalan söylemektedir.", 
+                    en: "A student is a genius in math and abstract reasoning (Formal Operations), but still lies solely for personal gain." 
+                },
+                aiExplanation: { 
+                    tr: "🤖 YZ Çıktısı: 'Kohlberg'e göre, bilişsel olarak dâhi olan birinin ahlaki olarak düşük bir evrede (ör. 2. Evre) kalması imkansızdır. Kesinlikle vaka kaydı hatalıdır.'", 
+                    en: "🤖 AI Output: 'According to Kohlberg, it is impossible for a cognitive genius to remain in a low moral stage (e.g. Stage 2). The case log must be wrong.'" 
+                },
+                question: { tr: "YZ bu genel değerlendirmede eğitim psikolojisinin hangi temel kuralını unuttu?", en: "What basic rule of educational psychology did the AI forget in this assessment?" },
+                options: [
+                    { tr: "Bireyin soyut düşünme becerisi arttıkça, pragmatik kararlar aldığı için ahlaki düzeyi otomatik olarak azalma eğilimi gösterir.", en: "As an individual's abstract thinking skills increase, their moral level automatically tends to decrease because they make pragmatic decisions." },
+                    { tr: "Bilişsel gelişim, ahlaki gelişim için 'gerekli' bir ön koşuldur ama tek başına 'yeterli' (garanti) değildir.", en: "Cognitive development is a 'necessary' prerequisite for moral development, but not 'sufficient' (guaranteed) on its own." },
+                    { tr: "Yalan söylemek sosyal hayatta kalma becerisi (adaptasyon) olduğu için, evrimsel psikolojiye göre en üst düzey ahlaktır.", en: "Because lying is a social survival skill (adaptation), according to evolutionary psychology it is the highest level of morality." },
+                    { tr: "Modern pedagojik araştırmalar, ahlaki muhakeme ve bilişsel zeka (IQ) arasında hiçbir bilimsel bağlantı kurulamadığını ispatlamıştır.", en: "Modern pedagogical research has proven that no scientific connection can be established between moral reasoning and cognitive intelligence (IQ)." }
+                ],
+                correctIndex: 1, 
+                correctionText: { 
+                    tr: "Sistemi Kurtardın! Kohlberg'e göre: Gelişmiş ahlak için zeka/soyut düşünme şarttır, ama her zeki olan yüksek ahlaklı olacak diye bir garanti yoktur.", 
+                    en: "You saved the system! According to Kohlberg: Intelligence/abstract thought is required for advanced morality, but there is no guarantee every intelligent person achieves high morality." 
+                }
+            }
+        ];
+
+        const appDiv = document.getElementById('app');
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'tr' ? 'en' : 'tr';
+            updateLangToggleUI();
+            
+            if (appDiv.querySelector('#start-screen')) renderStartScreen();
+            else if (appDiv.querySelector('#scenario-screen')) startScenario();
+            else if (appDiv.querySelector('#end-screen')) renderEndScreen();
+        }
+
+        function updateLangToggleUI() {
+            const trEl = document.getElementById('lang-tr');
+            const enEl = document.getElementById('lang-en');
+            
+            if (currentLang === 'tr') {
+                trEl.className = "lang-text lang-active";
+                enEl.className = "lang-text lang-inactive";
+            } else {
+                enEl.className = "lang-text lang-active";
+                trEl.className = "lang-text lang-inactive";
+            }
+        }
+        
+        function stopCurrentVideo() {
+            const videoEl = document.getElementById('feedbackVideo') || document.getElementById('finalVideo');
+            if (videoEl) {
+                videoEl.pause();
+                videoEl.removeAttribute('src');
+                videoEl.load();
+            }
+        }
+
+        function renderStartScreen() {
+            appDiv.innerHTML = `
+                <div id="start-screen" class="glass-panel rounded-3xl p-6 md:p-10 text-center animate-pop w-full max-w-4xl mx-auto relative overflow-hidden flex flex-col justify-center items-center h-full max-h-[90vh]">
+                    <div class="absolute top-[-50px] right-[-50px] w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] animate-float"></div>
+                    <div class="absolute bottom-[-50px] left-[-50px] w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] animate-float" style="animation-delay: 2s;"></div>
+                    
+                    <div class="relative z-10 w-full">
+                        <div class="text-7xl md:text-8xl text-cyan-400 mb-6 animate-glow inline-block"><i class="fa-solid fa-shield-halved"></i></div>
+                        <h1 class="text-4xl md:text-6xl font-black mb-3 tracking-tight text-gradient uppercase">${t('title')}</h1>
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-300 mb-6 tracking-widest uppercase">${t('subtitle')}</h2>
+                        
+                        <div class="bg-slate-900/60 p-5 md:p-6 rounded-2xl border border-slate-700/50 mb-8 text-sm md:text-lg text-slate-300 leading-relaxed text-left shadow-inner">
+                            <p>${t('welcome')}</p>
+                        </div>
+                        
+                        <button onclick="startScenario()" class="group relative bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 px-10 rounded-full text-lg md:text-xl transition-all duration-300 transform hover:scale-105 shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.7)] overflow-hidden inline-flex">
+                            <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-cyan-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <span class="relative z-10 flex items-center gap-3">${t('startBtn')} <i class="fa-solid fa-power-off"></i></span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function startScenario() {
+            stopCurrentVideo();
+            if (currentScenarioIndex >= scenarios.length) {
+                renderEndScreen();
+                return;
+            }
+
+            const sc = scenarios[currentScenarioIndex];
+            
+            appDiv.innerHTML = `
+                <div id="scenario-screen" class="glass-panel rounded-2xl p-4 md:p-6 animate-pop h-full w-full flex flex-col relative overflow-hidden">
+                    
+                    <div class="flex justify-between items-center mb-3 border-b border-slate-700 pb-2 shrink-0">
+                        <h2 class="text-2xl md:text-3xl font-black text-cyan-400 tracking-wide">${getT(sc.title)}</h2>
+                        <span class="bg-indigo-900/50 border border-indigo-500/30 font-bold py-1.5 px-4 rounded-full text-indigo-200 shadow-inner flex items-center gap-2 uppercase tracking-wider text-xs md:text-sm">
+                            <i class="fa-solid fa-database text-indigo-400"></i> <span class="hidden md:inline">${t('theory')}:</span> ${getT(sc.theory)}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-3 bg-slate-800/60 p-3 md:p-4 rounded-xl border-l-4 border-amber-500 shadow-sm shrink-0">
+                        <h3 class="text-sm md:text-base font-bold text-amber-400 mb-2 uppercase tracking-widest flex items-center gap-2"><i class="fa-solid fa-clipboard-user"></i> ${t('dilemmaTitle')}</h3>
+                        <p class="text-slate-200 text-sm md:text-base leading-snug">${getT(sc.dilemma)}</p>
+                    </div>
+
+                    <div class="mb-3 ai-chat-bubble p-3 md:p-4 rounded-xl shrink-0">
+                        <h3 class="text-cyan-400 font-bold mb-2 uppercase text-xs md:text-sm tracking-widest flex items-center gap-2"><i class="fa-solid fa-terminal"></i> ${t('aiTitle')}</h3>
+                        <p class="text-base md:text-lg font-medium text-white italic leading-snug">"${getT(sc.aiExplanation)}"</p>
+                    </div>
+
+                    <div class="bg-slate-900/80 rounded-2xl p-3 md:p-5 border border-slate-700 shadow-lg flex-1 flex flex-col justify-center min-h-0">
+                        <h3 class="text-lg md:text-xl font-bold mb-3 text-center text-rose-400 drop-shadow-md flex items-center justify-center gap-2 shrink-0">
+                            <i class="fa-solid fa-triangle-exclamation animate-pulse"></i> ${getT(sc.question)}
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 overflow-y-auto pr-1">
+                            ${sc.options.map((opt, index) => `
+                                <button onclick="showVideoPlaceholder(${index})" class="option-btn text-left w-full bg-slate-800/80 text-slate-200 p-3 md:p-4 rounded-xl border border-slate-600 hover:text-white text-xs md:text-sm font-medium flex items-start gap-3 leading-snug">
+                                    <span class="font-black text-cyan-400 text-lg mt-[-2px] shrink-0">${String.fromCharCode(65 + index)})</span> 
+                                    <span>${getT(opt)}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3 text-center shrink-0">
+                        <span class="text-xs font-bold text-slate-500 tracking-widest uppercase bg-slate-900/50 px-4 py-1.5 rounded-full shadow-inner">
+                            ${t('caseLabel')} ${currentScenarioIndex + 1} / ${scenarios.length}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function nextScenario() {
+            stopCurrentVideo();
+            currentScenarioIndex++;
+            startScenario();
+        }
+        
+        function retryScenario() {
+            stopCurrentVideo();
+            startScenario();
+        }
+
+        function showVideoPlaceholder(selectedIndex) {
+            const sc = scenarios[currentScenarioIndex];
+            const isCorrect = selectedIndex === sc.correctIndex;
+            if (isCorrect) score++;
+
+            const placeholderText = isCorrect ? t('videoPlaceholderCorrect') : t('videoPlaceholderWrong');
+            const placeholderColor = isCorrect ? 'text-emerald-400' : 'text-rose-400';
+            const shadowColor = isCorrect ? 'shadow-[0_0_30px_rgba(16,185,129,0.3)]' : 'shadow-[0_0_30px_rgba(244,63,94,0.3)]';
+            
+            const videoNumber = currentScenarioIndex + 1;
+            let videoSrc;
+
+            if (isCorrect) {
+                videoSrc = `dogru${videoNumber}.mp4`;
+            } else {
+                let wrongOrder = 1;
+                for(let i=0; i<selectedIndex; i++) {
+                    if(i !== sc.correctIndex) wrongOrder++;
+                }
+                const globalWrongNumber = (currentScenarioIndex * 3) + wrongOrder;
+                videoSrc = `yanlis${globalWrongNumber}.mp4`;
+            }
+
+            appDiv.innerHTML = `
+                <div class="glass-panel rounded-3xl p-4 md:p-6 text-center animate-pop flex flex-col items-center h-full w-full border-2 border-slate-700 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-black/40 z-0"></div>
+                    
+                    <div class="relative z-10 flex flex-col items-center w-full h-full">
+                        <h2 class="text-2xl md:text-3xl font-black ${placeholderColor} mb-2 tracking-widest uppercase drop-shadow-md shrink-0">
+                            ${placeholderText}
+                        </h2>
+                        
+                        <div class="relative flex-1 w-full min-h-0 bg-black rounded-2xl overflow-hidden ${shadowColor} border-2 ${isCorrect ? 'border-emerald-500/50' : 'border-rose-500/50'} flex items-center justify-center">
+                            <!-- VİDEO -->
+                            <video id="feedbackVideo" class="w-auto h-full max-w-full object-contain block relative z-10" autoplay playsinline>
+                                <source src="${videoSrc}" type="video/mp4">
+                                ${currentLang === 'tr' ? 'Tarayıcınız video etiketini desteklemiyor.' : 'Your browser does not support the video tag.'}
+                            </video>
+                            
+                            <!-- Hata Mesajı -->
+                            <div id="videoErrorMsg" class="absolute inset-0 z-0 flex flex-col items-center justify-center text-slate-500 hidden bg-black">
+                                <i class="fa-solid fa-triangle-exclamation text-4xl mb-2 text-rose-500/50"></i>
+                                <span class="text-sm font-bold tracking-widest uppercase text-center px-4">Video Bulunamadı!<br><span class="text-xs normal-case font-normal text-slate-400 mt-1 block">Lütfen <b>'${videoSrc}'</b> isimli dosyanın var olduğundan emin ol.</span></span>
+                            </div>
+                        </div>
+                        
+                        <!-- GERİ BİLDİRİM KUTUSU (Anında görünür) -->
+                        <div id="feedbackContainer" class="w-full shrink-0 animate-pop mt-4">
+                            <div class="bg-slate-900/90 p-3 md:p-4 rounded-xl border-l-4 ${isCorrect ? 'border-emerald-500' : 'border-rose-500'} shadow-lg mb-3 text-left flex items-center gap-3">
+                                <i class="fa-solid ${isCorrect ? 'fa-check-double text-emerald-400' : 'fa-triangle-exclamation text-rose-400'} text-2xl shrink-0"></i>
+                                <p class="text-slate-200 text-sm md:text-base font-medium">${isCorrect ? getT(sc.correctionText) : t('failMsg')}</p>
+                            </div>
+                            <button onclick="${isCorrect ? 'nextScenario()' : 'retryScenario()'}" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-8 rounded-full text-sm md:text-base transition transform hover:scale-105 shadow-xl flex items-center justify-center gap-2 mx-auto relative z-50 cursor-pointer">
+                                ${isCorrect ? t('nextBtn') + ' <i class="fa-solid fa-arrow-right"></i>' : '<i class="fa-solid fa-rotate-left"></i> ' + t('retryBtn')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const videoEl = document.getElementById('feedbackVideo');
+            if (videoEl) {
+                let playPromise = videoEl.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("Otomatik oynatma engellendi", error);
+                    });
+                }
+
+                const sourceEl = videoEl.querySelector('source');
+                sourceEl.onerror = function() {
+                    document.getElementById('videoErrorMsg').classList.remove('hidden');
+                    videoEl.classList.add('hidden');
+                };
+            }
+        }
+
+        function renderEndScreen() {
+            stopCurrentVideo();
+            appDiv.innerHTML = `
+                <div id="end-screen" class="glass-panel rounded-3xl p-4 md:p-6 w-full max-w-5xl mx-auto border-t-8 border-cyan-500 flex flex-col justify-between animate-pop h-full overflow-hidden">
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-3 shrink-0 gap-3">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-award text-3xl md:text-4xl text-gradient-gold animate-glow"></i>
+                            <h1 class="text-xl md:text-2xl font-black text-white tracking-tight uppercase m-0">${t('endTitle')}</h1>
+                        </div>
+                        <div class="text-lg md:text-xl text-cyan-300 font-bold bg-slate-900/80 py-1.5 px-5 rounded-full border border-cyan-500/40 shadow-sm">
+                            ${t('scoreLabel')}: <span class="text-white">${score}</span> <span class="text-slate-500">/ ${scenarios.length}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-4 min-h-0">
+                        
+                        <div class="lg:col-span-3 flex items-center justify-center relative min-h-0">
+                            <div class="relative w-auto h-full max-w-full rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-700 bg-black flex items-center justify-center">
+                                <video id="finalVideo" class="max-h-full w-auto max-w-full object-contain block relative z-10" autoplay playsinline>
+                                    <source src="kapanis.mp4" type="video/mp4">
+                                    ${currentLang === 'tr' ? 'Tarayıcınız video etiketini desteklemiyor.' : 'Your browser does not support the video tag.'}
+                                </video>
+
+                                <div id="finalVideoErrorMsg" class="absolute inset-0 z-0 flex flex-col items-center justify-center text-slate-500 hidden bg-black">
+                                    <i class="fa-solid fa-triangle-exclamation text-3xl mb-2 text-rose-500/50"></i>
+                                    <span class="text-sm font-bold tracking-widest uppercase text-center px-4">Video Bulunamadı!<br><span class="text-xs normal-case font-normal text-slate-400 mt-1 block"><b>'kapanis.mp4'</b> dosyasını kontrol et.</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-2 flex flex-col justify-between gap-3 overflow-y-auto pr-1">
+                            <div class="bg-indigo-950/40 p-3 rounded-xl border border-indigo-500/30 shadow-sm shrink-0">
+                                <h3 class="text-xs font-bold text-indigo-400 mb-2 uppercase tracking-wider flex items-center gap-2"><i class="fa-regular fa-comments"></i> ${t('reflectionTitle')}</h3>
+                                <ul class="list-none text-slate-300 space-y-1.5 text-xs md:text-sm">
+                                    <li class="flex items-start bg-slate-900/50 p-1.5 rounded-lg"><i class="fa-solid fa-arrow-right text-indigo-400 mt-0.5 mr-2"></i> <span class="leading-snug">${t('reflection1')}</span></li>
+                                    <li class="flex items-start bg-slate-900/50 p-1.5 rounded-lg"><i class="fa-solid fa-arrow-right text-indigo-400 mt-0.5 mr-2"></i> <span class="leading-snug">${t('reflection2')}</span></li>
+                                    <li class="flex items-start bg-slate-900/50 p-1.5 rounded-lg"><i class="fa-solid fa-arrow-right text-indigo-400 mt-0.5 mr-2"></i> <span class="leading-snug">${t('reflection3')}</span></li>
+                                </ul>
+                            </div>
+
+                            <blockquote class="bg-slate-900/60 p-3 rounded-xl border-l-4 border-cyan-500 text-xs md:text-sm font-light italic text-slate-300 shadow-sm shrink-0">
+                                ${t('quote')}
+                            </blockquote>
+                            
+                            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 shadow-sm text-center shrink-0">
+                                <h4 class="text-xs font-bold text-cyan-400 mb-2 uppercase tracking-widest"><i class="fa-solid fa-users-gear mr-1"></i> ${t('teamTitle')}</h4>
+                                <div class="flex flex-wrap justify-center gap-1.5 text-xs text-slate-200 font-bold">
+                                    <span class="bg-slate-800 px-2 py-1 rounded-md border border-slate-600">Buğra Kaan Meyveci</span>
+                                    <span class="bg-slate-800 px-2 py-1 rounded-md border border-slate-600">Hümeyra Kaymakçı</span>
+                                    <span class="bg-slate-800 px-2 py-1 rounded-md border border-slate-600">Zeynep Ada Can</span>
+                                    <span class="bg-slate-800 px-2 py-1 rounded-md border border-slate-600">Dicle Çağlar</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="shrink-0 flex justify-between items-center border-t border-slate-700 pt-3 mt-3">
+                        <span class="text-sm md:text-base font-black text-emerald-400 uppercase tracking-widest">${t('thanks')} <i class="fa-solid fa-hands-clapping"></i></span>
+                        <button onclick="location.reload()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold py-2 px-6 rounded-full text-xs md:text-sm transition transform hover:scale-105 flex items-center gap-2 relative z-50 cursor-pointer">
+                            <i class="fa-solid fa-power-off"></i> ${t('restartBtn')}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                const finalVideoEl = document.getElementById('finalVideo');
+                if (finalVideoEl) {
+                    let playPromise = finalVideoEl.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => console.log("Final video play error", error));
+                    }
+                    finalVideoEl.querySelector('source').onerror = function() {
+                        document.getElementById('finalVideoErrorMsg').classList.remove('hidden');
+                        finalVideoEl.classList.add('hidden');
+                    };
+                }
+            }, 100);
+        }
+
+        updateLangToggleUI();
+        renderStartScreen();
+    </script>
+</body>
+</html>
